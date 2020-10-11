@@ -30,6 +30,7 @@ for i in range(EPOCHS):
 
 torch.save(model, open('ArtAI.model', 'wb'))
 
+'''
 to_img = ToPILImage()
 idx = torch.randperm(X.size()[0])[:DEMOS]
 
@@ -38,3 +39,4 @@ for i in idx:
     ax_arr[0].imshow(to_img(X[i]))
     ax_arr[1].imshow(to_img(model(X[i].unsqueeze(dim=0))[0][0]))
     plt.show()
+'''
