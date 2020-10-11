@@ -37,7 +37,7 @@ class VAE(torch.nn.Module):
 
     def forward(self, X):
         x = self.enc(X)
-        print(x.size())
+        #print(x.size())
         
         #mu = self.mean(x)
         #std = self.std(x)
@@ -45,10 +45,10 @@ class VAE(torch.nn.Module):
         mu = x
         std = x 
         z = self.reparam(mu, std)
-        print(z.size())
+        #print(z.size())
 
         x = torch.sigmoid(self.dec(z))
-        print(x.size())
+        #print(x.size())
 
         return x, mu, std
 
