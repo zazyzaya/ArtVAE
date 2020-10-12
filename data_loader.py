@@ -10,10 +10,11 @@ TRAIN_FILES = os.path.join(os.getcwd(), 'dataset', 'training_set')
 TEST_FILES = os.path.join(os.getcwd(), 'dataset', 'validation_set')
 
 class ImgSet():
-    def __init__(self, width=256, height=256, gray=False):
+    def __init__(self, width=256, height=256, gray=False, max_files=None):
         self.width = width
         self.height = height
         self.color = 'LA' if gray else 'RGB'
+        self.max_files = float('inf') if max_files == None else max_files
 
         self.class_map = dict()
         self.X = None 
@@ -25,6 +26,7 @@ class ImgSet():
     '''
     def load_folders(self, location, ignore=[], only_use=None):
         ignore.append('.DS_STORE')
+        ignore = [s.upper() for s in ignore]
         imgs = []
         y = []
 
@@ -46,6 +48,7 @@ class ImgSet():
                 generator = os.listdir(os.path.join(location, folder))
 
             print("Loading %s" % folder)
+            cnt = 0
             for img_file in tqdm(generator):
                 if img_file.upper() == '.DS_STORE':
                     continue 
@@ -64,6 +67,10 @@ class ImgSet():
 
                 imgs.append(tt(img))
                 y.append(label)
+
+                cnt += 1
+                if cnt >= self.max_files:
+                    break
 
         if self.X == None:
             self.X = torch.stack(imgs)

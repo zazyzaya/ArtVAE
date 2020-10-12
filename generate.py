@@ -6,9 +6,9 @@ from vae import VAE
 from matplotlib import pyplot as plt
 from torchvision.transforms import ToPILImage
 
-SIZE = 256
+SIZE = 256 * 8
 DEMOS = 10
-s = ImgSet(SIZE, SIZE, gray=True)
+s = ImgSet(SIZE, SIZE, gray=True, max_files=25)
 s.load_folders('data')
 X = s.X
 
