@@ -5,20 +5,21 @@ from matplotlib import pyplot as plt
 from random import randint
 from data_loader import ImgSet
 from vae import VAE
-from torch.optim import Adam, Adadelta
+from torch.optim import Adam, Adadelta, SGD
 from torchvision.transforms import ToPILImage
 
-EPOCHS = 100
+EPOCHS = 1000
 DEMOS = 10
-LR = 0.001
+LR = 0.0001
 SIZE = 256
+GRAY = False
 
-imgs = ImgSet(SIZE, SIZE)
+imgs = ImgSet(SIZE, SIZE, gray=GRAY)
 imgs.load_folders('data')
 X = imgs.X
 
-model = VAE(SIZE, SIZE)
-opt = Adadelta(model.parameters())
+model = VAE(SIZE, SIZE, colors=3)
+opt = Adam(model.parameters(), lr=LR)
 
 for i in range(EPOCHS):
     opt.zero_grad()
