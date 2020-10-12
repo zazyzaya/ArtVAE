@@ -10,9 +10,10 @@ TRAIN_FILES = os.path.join(os.getcwd(), 'dataset', 'training_set')
 TEST_FILES = os.path.join(os.getcwd(), 'dataset', 'validation_set')
 
 class ImgSet():
-    def __init__(self, width=256, height=256):
+    def __init__(self, width=256, height=256, gray=False):
         self.width = width
         self.height = height
+        self.color = 'LA' if gray else 'RGB'
 
         self.class_map = dict()
         self.X = None 
@@ -59,7 +60,7 @@ class ImgSet():
                     continue 
 
                 img = img.resize((self.width, self.height))
-                img = img.convert("RGB")
+                img = img.convert(self.color)
 
                 imgs.append(tt(img))
                 y.append(label)

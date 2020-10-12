@@ -6,7 +6,7 @@ from torch.nn import Linear, Sigmoid, ReLU, Conv2d, \
 
 class VAE(torch.nn.Module):
     def __init__(self, input_x, input_y, n_convs=4, ksize=4, padding=1, stride=2, 
-                embedding_dim=16, colors=3):
+                colors=3):
         super().__init__()
 
         enc = []
@@ -18,8 +18,8 @@ class VAE(torch.nn.Module):
         enc = ModuleList(enc)
         self.enc = Sequential(*enc)
 
-        #self.mean = AdaptiveAvgPool2d(embedding_dim)
-        #self.std = AdaptiveAvgPool2d(embedding_dim)
+        self.mean = ConvTranspose2d(colors*2**n_convs, colors*2**n_convs, 1)
+        self.std = ConvTranspose2d(colors*2**n_convs, colors*2**n_convs, 1)
 
         dec = []
         for i in range(n_convs, 0, -1):

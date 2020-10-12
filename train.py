@@ -1,6 +1,7 @@
 import torch
-from matplotlib import pyplot as plt
+import sys 
 
+from matplotlib import pyplot as plt
 from random import randint
 from data_loader import ImgSet
 from vae import VAE
@@ -10,12 +11,13 @@ from torchvision.transforms import ToPILImage
 EPOCHS = 100
 DEMOS = 10
 LR = 0.001
+SIZE = 256
 
-imgs = ImgSet()
+imgs = ImgSet(SIZE, SIZE)
 imgs.load_folders('data')
 X = imgs.X
 
-model = VAE(imgs.height, imgs.width)
+model = VAE(SIZE, SIZE)
 opt = Adadelta(model.parameters())
 
 for i in range(EPOCHS):
@@ -30,13 +32,12 @@ for i in range(EPOCHS):
 
 torch.save(model, open('ArtAI.model', 'wb'))
 
-'''
-to_img = ToPILImage()
-idx = torch.randperm(X.size()[0])[:DEMOS]
+if len(sys.argv) > 1 and sys.argv[1].upper() in '--DISPLAY':
+    to_img = ToPILImage()
+    idx = torch.randperm(X.size()[0])[:DEMOS]
 
-for i in idx:
-    f, ax_arr = plt.subplots(2)
-    ax_arr[0].imshow(to_img(X[i]))
-    ax_arr[1].imshow(to_img(model(X[i].unsqueeze(dim=0))[0][0]))
-    plt.show()
-'''
+    for i in idx:
+        f, ax_arr = plt.subplots(2)
+        ax_arr[0].imshow(to_img(X[i]))
+        ax_arr[1].imshow(to_img(model(X[i].unsqueeze(dim=0))[0][0]))
+        plt.show()
