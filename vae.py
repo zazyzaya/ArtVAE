@@ -2,10 +2,10 @@ import torch
 
 from torch.nn import Linear, Sigmoid, ReLU, Conv2d, \
     ConvTranspose2d, AdaptiveAvgPool2d, ModuleList, \
-    Sequential, BCELoss
+    Sequential, BCELoss, BatchNorm2d
 
 class VAE(torch.nn.Module):
-    def __init__(self, input_x, input_y, n_convs=4, ksize=3, padding=1, stride=2, 
+    def __init__(self, input_x, input_y, n_convs=3, ksize=3, padding=1, stride=2, 
                 embedding_dim=16, colors=3):
         super().__init__()
 
@@ -15,7 +15,8 @@ class VAE(torch.nn.Module):
         enc = []
         for i in range(n_convs):
             enc += [
-                Conv2d(colors*2**i, colors*2**(i+1), ksize+i, stride=stride, padding=padding),
+                Conv2d(colors*2**i, colors*2**(i+1), ksize, stride=stride, padding=padding),
+                BatchNorm2d(colors*2**(i+1)),
                 ReLU()
             ]
         enc = ModuleList(enc)
@@ -27,7 +28,8 @@ class VAE(torch.nn.Module):
         dec = []
         for i in range(n_convs, 0, -1):
             dec += [
-                ConvTranspose2d(colors*2**i, colors*2**(i-1), ksize+(i), stride=stride, padding=padding),
+                ConvTranspose2d(colors*2**i, colors*2**(i-1), ksize, stride=stride, padding=padding),
+                BatchNorm2d(colors*2**(i-1)),
                 ReLU()
             ]
         
