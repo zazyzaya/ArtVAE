@@ -1,21 +1,24 @@
 import torch
-import sys 
+from gan import * 
 
+import sys 
 from matplotlib import pyplot as plt
 from random import randint
 from data_loader import ImgSet
-from vae import VAE
-from stolen_vae import StolenVAE
-from torch.optim import Adam, Adadelta, SGD
+from torch.optim import Adam
+from torch.autograd import Variable
 from torchvision.transforms import ToPILImage, ToTensor, \
     Compose, ColorJitter, RandomRotation
 
-EPOCHS = 50
+EPOCHS = 10
 DEMOS = 10
-LR = 0.01
-SIZE = 100
-MINI_BATCH = 128
+LR = 0.005
+SIZE = 64
+MINI_BATCH = 100
+LATENT_SIZE = 16
+HIDDEN = 128
 GRAY = False
+K = 2
 
 to_img = ToPILImage()
 to_ten = ToTensor()
@@ -24,14 +27,13 @@ imgs = ImgSet(SIZE, SIZE, gray=GRAY)
 imgs.load_folders('data', ignore=['engraving', 'abstract'])
 X = imgs.X
 
-#model = VAE(SIZE, SIZE, colors=3, n_convs=4, ksize=4, stride=1)
-model = StolenVAE(input_size=SIZE, latent_size=512)
-
-#opt = Adam(model.parameters(), lr=LR)
-opt = Adadelta(model.parameters())
+D = Discriminator(SIZE, out_channels=HIDDEN)
+G = Generator(LATENT_SIZE, SIZE, hidden_channels=HIDDEN)
+d_opt = Adam(D.parameters(), lr=LR)
+g_opt = Adam(G.parameters(), lr=LR)
 
 rand_transforms = Compose([
-    ColorJitter(hue=0.5),
+    #ColorJitter(hue=0.15),
     RandomRotation(30)
 ])
 
@@ -47,33 +49,60 @@ def get_transformed_input(x, tr):
 
     return torch.stack(transformed)
 
+ticks = 1
 for i in range(EPOCHS):
     mb = 0
     order = torch.randperm(X.size()[0])
     tot_loss = 0 
-    opt.zero_grad()
-
+    
+    d_opt.zero_grad()
+    g_opt.zero_grad()
     while mb*MINI_BATCH < X.size()[0]:
         batch = X[order][MINI_BATCH*mb:min(MINI_BATCH*(mb+1), X.size()[0])]
-        X_test = batch #get_transformed_input(batch, rand_transforms)
-        X_prime, mu, std = model(X_test)
-        loss = model.loss(X_test, X_prime, mu, std)
+        bs = batch.size()[0]
 
-        loss.backward()
-        tot_loss += loss.item()
+        static = G.generate_random(bs)
+
+        real_labels = Variable(torch.full((bs,1), 1.0))
+        fake_labels = Variable(torch.zeros((bs,1)).float())
+
+        # First train discriminator
+        real_loss = d_loss(D(batch), real_labels)
+        fake_loss = d_loss(D(static), fake_labels)
+
+        d_tot_loss = (real_loss + fake_loss) / 2
+        d_tot_loss.backward()
+        d_opt.step()
+
+        # Then train generator every k steps
+        if ticks % K == 0:
+            z = get_noise(LATENT_SIZE, bs)
+            imgs = G(z)
+            g_tot_loss = g_loss(D(imgs), fake_labels)
+
+            g_tot_loss.backward() 
+            g_tot_loss = g_tot_loss.item()
+            g_opt.step()
+
+            # Decider is basically fooled
+            if g_tot_loss < 0.00001:
+                break
+
+        else:
+            g_tot_loss = float('nan')
+
+        print('[%d-%d] D Loss: %0.4f \tG Loss %0.4f' % (i, mb, d_tot_loss.item(), g_tot_loss))
+
         mb += 1
-        print('.', end='')
+        ticks += 1
     
-    opt.step()
-    print("[%d] %0.4f" % (i, tot_loss/X.size()[0]))
 
-torch.save(model, open('ArtAI.model', 'wb'))
+torch.save(G, 'generator.model')
+torch.save(D, 'descriminator.model')
 
 if len(sys.argv) > 1 and sys.argv[1].upper() in '--DISPLAY':
     idx = torch.randperm(X.size()[0])[:DEMOS]
 
     for i in idx:
-        f, ax_arr = plt.subplots(2)
-        ax_arr[0].imshow(to_img(X[i]))
-        ax_arr[1].imshow(to_img(model(X[i].unsqueeze(dim=0))[0][0]))
+        plt.imshow(to_img(G.generate_random(2)[0]))
         plt.show()
