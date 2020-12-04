@@ -10,20 +10,20 @@ from torch.autograd import Variable
 from torchvision.transforms import ToPILImage, ToTensor, \
     Compose, ColorJitter, RandomRotation
 
-EPOCHS = 10
+EPOCHS = 50
 DEMOS = 10
 LR = 0.005
 SIZE = 64
 MINI_BATCH = 100
-LATENT_SIZE = 16
-HIDDEN = 128
+LATENT_SIZE = 32
+HIDDEN = 256
 GRAY = False
 K = 2
 
 to_img = ToPILImage()
 to_ten = ToTensor()
 
-imgs = ImgSet(SIZE, SIZE, gray=GRAY)
+imgs = ImgSet(SIZE, SIZE, gray=GRAY, max_files=500)
 imgs.load_folders('data', ignore=['engraving', 'abstract'])
 X = imgs.X
 
