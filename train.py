@@ -10,15 +10,17 @@ from torch.autograd import Variable
 from torchvision.transforms import ToPILImage, ToTensor, \
     Compose, ColorJitter, RandomRotation
 
-EPOCHS = 50
+EPOCHS = 100
 DEMOS = 10
 LR = 0.005
-SIZE = 64
-MINI_BATCH = 100
+SIZE = 128 
+MINI_BATCH = 128
 LATENT_SIZE = 32
-HIDDEN = 256
+HIDDEN =128 
 GRAY = False
 K = 2
+
+torch.set_num_threads(16)
 
 to_img = ToPILImage()
 to_ten = ToTensor()
