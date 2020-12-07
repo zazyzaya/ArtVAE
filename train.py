@@ -12,13 +12,13 @@ from torchvision.transforms import ToPILImage, ToTensor, \
 
 EPOCHS = 100
 DEMOS = 10
-LR = 0.005
-SIZE = 128 
-MINI_BATCH = 128
+LR = 0.0005
+SIZE = 32 
+MINI_BATCH = 512
 LATENT_SIZE = 32
-HIDDEN =128 
+HIDDEN = 256 
 GRAY = False
-K = 2
+K = 1
 
 torch.set_num_threads(16)
 
@@ -26,7 +26,7 @@ to_img = ToPILImage()
 to_ten = ToTensor()
 
 imgs = ImgSet(SIZE, SIZE, gray=GRAY, max_files=500)
-imgs.load_folders('data', ignore=['engraving', 'abstract'])
+imgs.load_folders('data', ignore=['engraving', 'iconography'])
 X = imgs.X
 
 D = Discriminator(SIZE, out_channels=HIDDEN)
@@ -51,14 +51,14 @@ def get_transformed_input(x, tr):
 
     return torch.stack(transformed)
 
+start_foolin = False
 ticks = 1
-for i in range(EPOCHS):
+i = 0
+while i < EPOCHS:
     mb = 0
     order = torch.randperm(X.size()[0])
     tot_loss = 0 
     
-    d_opt.zero_grad()
-    g_opt.zero_grad()
     while mb*MINI_BATCH < X.size()[0]:
         batch = X[order][MINI_BATCH*mb:min(MINI_BATCH*(mb+1), X.size()[0])]
         bs = batch.size()[0]
@@ -69,34 +69,47 @@ for i in range(EPOCHS):
         fake_labels = Variable(torch.zeros((bs,1)).float())
 
         # First train discriminator
+        d_opt.zero_grad()
+
         real_loss = d_loss(D(batch), real_labels)
         fake_loss = d_loss(D(static), fake_labels)
 
-        d_tot_loss = (real_loss + fake_loss) / 2
-        d_tot_loss.backward()
+        d_tot_loss = real_loss.mean().item() + fake_loss.mean().item()
+        
+        real_loss.backward()
+        fake_loss.backward()
         d_opt.step()
 
+        # Don't train generator until descriminator is 
+        # pretty good at its job
+        if d_tot_loss < 0.15:
+            start_foolin = True
+
         # Then train generator every k steps
-        if ticks % K == 0:
-            z = get_noise(LATENT_SIZE, bs)
+        if ticks % K == 0 and start_foolin:
+            g_opt.zero_grad()
+
+            z = get_noise(LATENT_SIZE, bs*2)
             imgs = G(z)
-            g_tot_loss = g_loss(D(imgs), fake_labels)
+            g_tot_loss = g_loss(D(imgs), real_labels)
 
             g_tot_loss.backward() 
             g_tot_loss = g_tot_loss.item()
             g_opt.step()
 
-            # Decider is basically fooled
-            if g_tot_loss < 0.00001:
-                break
-
         else:
             g_tot_loss = float('nan')
 
-        print('[%d-%d] D Loss: %0.4f \tG Loss %0.4f' % (i, mb, d_tot_loss.item(), g_tot_loss))
+        print('[%d-%d] D Loss: %0.4f \tG Loss %0.4f' % (i, mb, d_tot_loss, g_tot_loss))
 
         mb += 1
         ticks += 1
+
+    if i % 25 == 0 and i > 0:
+        torch.save(G, 'generator.model')
+
+    if start_foolin:
+        i += 1
     
 
 torch.save(G, 'generator.model')
