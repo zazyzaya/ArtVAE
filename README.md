@@ -3,5 +3,6 @@ The title is wrong. I gave up on doing this with a VAE, now it uses a GAN archit
 
 ![img1](/imgs/1.png)
 ![img2](/imgs/2.png)
+
 ![img3](/imgs/3.png)
 ![img4](/imgs/4.png)
