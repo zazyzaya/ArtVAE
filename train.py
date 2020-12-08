@@ -10,29 +10,32 @@ from torch.autograd import Variable
 from torchvision.transforms import ToPILImage, ToTensor, \
     Compose, ColorJitter, RandomRotation
 
-EPOCHS = 100
+EPOCHS = 500
 DEMOS = 10
-LR = 0.0005
-SIZE = 32 
+LR = 0.0002
+SIZE = 64 
 MINI_BATCH = 512
-LATENT_SIZE = 32
-HIDDEN = 256 
+LATENT_SIZE = 16 
+HIDDEN = 128 
 GRAY = False
 K = 1
+
+MAX_FILES=256
+I_PITY_THE_FOOL = 0.4
 
 torch.set_num_threads(16)
 
 to_img = ToPILImage()
 to_ten = ToTensor()
 
-imgs = ImgSet(SIZE, SIZE, gray=GRAY, max_files=500)
-imgs.load_folders('data', ignore=['engraving', 'iconography'])
+imgs = ImgSet(SIZE, SIZE, gray=GRAY, max_files=MAX_FILES)
+imgs.load_folders('data', ignore=['engraving', 'abstract'])
 X = imgs.X
 
 D = Discriminator(SIZE, out_channels=HIDDEN)
 G = Generator(LATENT_SIZE, SIZE, hidden_channels=HIDDEN)
-d_opt = Adam(D.parameters(), lr=LR)
-g_opt = Adam(G.parameters(), lr=LR)
+d_opt = Adam(D.parameters(), lr=LR, betas=(0.5, 0.999))
+g_opt = Adam(G.parameters(), lr=LR, betas=(0.5, 0.999))
 
 rand_transforms = Compose([
     #ColorJitter(hue=0.15),
@@ -82,14 +85,14 @@ while i < EPOCHS:
 
         # Don't train generator until descriminator is 
         # pretty good at its job
-        if d_tot_loss < 0.15:
+        if d_tot_loss < I_PITY_THE_FOOL:
             start_foolin = True
 
         # Then train generator every k steps
         if ticks % K == 0 and start_foolin:
             g_opt.zero_grad()
 
-            z = get_noise(LATENT_SIZE, bs*2)
+            z = get_noise(LATENT_SIZE, bs)
             imgs = G(z)
             g_tot_loss = g_loss(D(imgs), real_labels)
 
@@ -105,7 +108,7 @@ while i < EPOCHS:
         mb += 1
         ticks += 1
 
-    if i % 25 == 0 and i > 0:
+    if i % 10 == 0 and i > 0:
         torch.save(G, 'generator.model')
 
     if start_foolin:

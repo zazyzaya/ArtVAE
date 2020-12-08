@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm 
 from torchvision.transforms import ToTensor
 from PIL import Image, UnidentifiedImageError
+from torchvision.datasets import ImageFolder
 
 
 TRAIN_FILES = os.path.join(os.getcwd(), 'dataset', 'training_set')
