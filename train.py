@@ -10,12 +10,12 @@ from torch.autograd import Variable
 from torchvision.transforms import ToPILImage, ToTensor, \
     Compose, ColorJitter, RandomRotation
 
-EPOCHS = 500
+EPOCHS = 1000
 DEMOS = 10
 LR = 0.0002
-SIZE = 64 
+SIZE = 128 
 MINI_BATCH = 512
-LATENT_SIZE = 16 
+LATENT_SIZE = 32 
 HIDDEN = 256 
 GRAY = False
 K = 1
@@ -54,6 +54,9 @@ def get_transformed_input(x, tr):
 
     return torch.stack(transformed)
 
+def add_noise(x, n_fakes=5):
+    x[torch.randperm(x.size()[0])[:n_fakes]] = 0.0
+
 start_foolin = False
 ticks = 1
 i = 0
@@ -66,16 +69,20 @@ while i < EPOCHS:
         batch = X[order][MINI_BATCH*mb:min(MINI_BATCH*(mb+1), X.size()[0])]
         bs = batch.size()[0]
 
-        static = G.generate_random(bs)
+        z = get_noise(LATENT_SIZE, bs)
+        fake_imgs = G(z)
 
         real_labels = Variable(torch.full((bs,1), 1.0))
         fake_labels = Variable(torch.zeros((bs,1)).float())
+
+        if start_foolin:
+            add_noise(real_labels)
 
         # First train discriminator
         d_opt.zero_grad()
 
         real_loss = d_loss(D(batch), real_labels)
-        fake_loss = d_loss(D(static), fake_labels)
+        fake_loss = d_loss(D(fake_imgs), fake_labels)
 
         d_tot_loss = real_loss.mean().item() + fake_loss.mean().item()
         
@@ -90,11 +97,10 @@ while i < EPOCHS:
 
         # Then train generator every k steps
         if ticks % K == 0 and start_foolin:
-            g_opt.zero_grad()
+            real_labels = Variable(torch.full((bs,1), 1.0))
 
-            z = get_noise(LATENT_SIZE, bs)
-            imgs = G(z)
-            g_tot_loss = g_loss(D(imgs), real_labels)
+            g_opt.zero_grad()
+            g_tot_loss = g_loss(D(fake_imgs), real_labels)
 
             g_tot_loss.backward() 
             g_tot_loss = g_tot_loss.item()
@@ -117,10 +123,3 @@ while i < EPOCHS:
 
 torch.save(G, 'generator.model')
 torch.save(D, 'descriminator.model')
-
-if len(sys.argv) > 1 and sys.argv[1].upper() in '--DISPLAY':
-    idx = torch.randperm(X.size()[0])[:DEMOS]
-
-    for i in idx:
-        plt.imshow(to_img(G.generate_random(2)[0]))
-        plt.show()
