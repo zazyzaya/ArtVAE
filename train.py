@@ -16,7 +16,7 @@ LR = 0.0002
 SIZE = 64 
 MINI_BATCH = 512
 LATENT_SIZE = 16 
-HIDDEN = 128 
+HIDDEN = 256 
 GRAY = False
 K = 1
 
@@ -29,7 +29,7 @@ to_img = ToPILImage()
 to_ten = ToTensor()
 
 imgs = ImgSet(SIZE, SIZE, gray=GRAY, max_files=MAX_FILES)
-imgs.load_folders('data', ignore=['engraving', 'abstract'])
+imgs.load_folders('data', ignore=['iconography', 'engraving', 'abstract'])
 X = imgs.X
 
 D = Discriminator(SIZE, out_channels=HIDDEN)
